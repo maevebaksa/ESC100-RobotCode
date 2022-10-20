@@ -35,7 +35,7 @@ const int leftServoSense = A0;
 //is touching the book page, then subract 20
 //set this value in the threshold value.
 bool calibrate = false;
-int threshold = 0;
+int threshold = 512;
 
 // continuous rotation servos must 
 //be adjusted in a way so that at 1500us 
