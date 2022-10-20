@@ -23,8 +23,8 @@ const int leftMotorPin2 = 2;
 const int leftMotorPWM = 9;
 
 //current sense pins
-const int rightServoSense = A0;
-const int leftServoSense = A1;
+const int rightServoSense = A1;
+const int leftServoSense = A0;
 
 //CALIBRATION: 
 
@@ -35,7 +35,8 @@ const int leftServoSense = A1;
 //is touching the book page, then subract 20
 //set this value in the threshold value.
 bool calibrate = false;
-int threshold = 220;
+int rightThreshold = 800;
+int leftThreshold = 800;
 
 // continuous rotation servos must 
 //be adjusted in a way so that at 1500us 
@@ -50,12 +51,12 @@ bool servoStopCalibrate = false;
 //additionally, adjust the speed of the servos
 
 int spinningTime = 1000;
-int uSforClockwise = 800;
-int uSforCounterClockwise = 2200;
+int uSforClockwise = 900;
+int uSforCounterClockwise = 2100;
 
 //how long to wait for the current to stabilize 
 //and to wait before moving the servo further
-int delayBetweenDegrees = 100;
+int delayBetweenDegrees = 1;
 
 //how far the motor should turn backwards
 //in degrees in order to not apply too much 
@@ -69,7 +70,7 @@ int leftServoHome = 180;
 
 //use this to set how far the servo should go max
 //this should not be greater than 180
-int maxAngle = 180;
+int maxAngle = 150;
 
 //use these to set the direction of the wheel motor
 int leftMotorOneValue = 1;
@@ -112,9 +113,9 @@ void setup() {
   centerServo.attach(centerServoPWM);
 
   //move the servos back to top
-  rightServo.write(0);
-  leftServo.write(0);
-  centerServo.write(1500);
+  rightServo.write(rightServoHome);
+  leftServo.write(leftServoHome);
+  centerServo.writeMicroseconds(1500);
 }
 
 //the main function 
@@ -128,6 +129,8 @@ void turnPage (bool direction, bool wheelsDown){
   int otherSensePin;
   int pin1Value;
   int pin2Value;
+  int threshold;
+  int otherThreshold;
 
   //based on the motor direction, set the 
   //pins and values so that everything turns
@@ -143,6 +146,8 @@ void turnPage (bool direction, bool wheelsDown){
     otherSensePin = rightServoSense;
     pin1Value = leftMotorOneValue;
     pin2Value = leftMotorTwoValue;
+    threshold = leftThreshold;
+    otherThreshold = rightThreshold;
   }
 
   else if (direction == 1){
@@ -154,16 +159,19 @@ void turnPage (bool direction, bool wheelsDown){
     otherSensePin = leftServoSense;
     pin1Value = rightMotorOneValue;
     pin2Value = rightMotorTwoValue;
+    threshold = rightThreshold;
+    otherThreshold = leftThreshold;
   } 
 
   //move all wheels to start position
   rightServo.write(rightServoHome);
   leftServo.write(leftServoHome);
-  centerServo.write(1500);
+  centerServo.writeMicroseconds(1500);
   Serial.println("homed");
   delay(5000);
 
   //stalling threshold
+  Serial.println(analogRead(sensePin));
   while(analogRead(sensePin) < threshold && position < maxAngle){
     position ++;
     if (direction == 0){
@@ -199,6 +207,12 @@ void turnPage (bool direction, bool wheelsDown){
   //here is set by variable so it should be really easy
   //famous last words ^^
 
+  Serial.println(motorPin1);
+  Serial.println(pin1Value);
+  Serial.println(motorPin2);
+  Serial.println(pin2Value);
+  Serial.println(motorPWM);
+  Serial.println(motorSpeed);
   digitalWrite(motorPin1,pin1Value);
   digitalWrite(motorPin2,pin2Value);
   analogWrite(motorPWM,motorSpeed);
@@ -230,7 +244,7 @@ void turnPage (bool direction, bool wheelsDown){
   if (wheelsDown == 1){  
     position = 0;
     // lower the other motor onto the page
-    while(analogRead(otherSensePin) < threshold && position < maxAngle){
+    while(analogRead(otherSensePin) < otherThreshold && position < maxAngle){
       position ++;
       if (direction == 0){
         rightServo.write(position);
@@ -275,7 +289,7 @@ void loop() {
       delay(100);
     }
   }
-  else if (servoStopCalibrate == true){
+  else if (servoStopCalibrate){
 
     //move the right and left servo to
     //the proper home position to 
@@ -305,12 +319,12 @@ void loop() {
     //bool wheelsDown leaves the wheels in a downward position if there's a value of 1
 
     if (digitalRead(leftButton) == LOW){
-      turnPage(0,0);
       Serial.println("left");
+      turnPage(0,0);
     }
     if (digitalRead(rightButton) == LOW){
-      turnPage(1,0);
       Serial.println("right");
+      turnPage(1,0);
     }
   }
 
