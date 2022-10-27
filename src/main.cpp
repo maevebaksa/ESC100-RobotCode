@@ -35,8 +35,8 @@ const int leftServoSense = A0;
 //is touching the book page, then subract 20
 //set this value in the threshold value.
 bool calibrate = false;
-int rightThreshold = 800;
-int leftThreshold = 800;
+int rightThreshold = 200;
+int leftThreshold = 200;
 
 // continuous rotation servos must 
 //be adjusted in a way so that at 1500us 
@@ -70,7 +70,7 @@ int leftServoHome = 180;
 
 //use this to set how far the servo should go max
 //this should not be greater than 180
-int maxAngle = 150;
+int maxAngle = 120;
 
 //use these to set the direction of the wheel motor
 int leftMotorOneValue = 1;
@@ -172,7 +172,7 @@ void turnPage (bool direction, bool wheelsDown){
 
   //stalling threshold
   Serial.println(analogRead(sensePin));
-  while(analogRead(sensePin) < threshold && position < maxAngle){
+  while((analogRead(sensePin) < threshold && position < maxAngle) || position <= 30){
     position ++;
     if (direction == 0){
       leftServo.write(180-position);
@@ -244,7 +244,7 @@ void turnPage (bool direction, bool wheelsDown){
   if (wheelsDown == 1){  
     position = 0;
     // lower the other motor onto the page
-    while(analogRead(otherSensePin) < otherThreshold && position < maxAngle){
+    while((analogRead(otherSensePin) < otherThreshold && position < maxAngle) || position < 30){
       position ++;
       if (direction == 0){
         rightServo.write(position);
