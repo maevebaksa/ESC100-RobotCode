@@ -36,7 +36,7 @@ const int leftServoSense = A0;
 //set this value in the threshold value.
 bool calibrate = false;
 int rightThreshold = 200;
-int leftThreshold = 200;
+int leftThreshold = 230;
 
 // continuous rotation servos must 
 //be adjusted in a way so that at 1500us 
@@ -52,7 +52,7 @@ bool servoStopCalibrate = false;
 
 int spinningTime = 1000;
 int uSforClockwise = 900;
-int uSforCounterClockwise = 2100;
+int uSforCounterClockwise = 2000;
 
 //how long to wait for the current to stabilize 
 //and to wait before moving the servo further
@@ -79,6 +79,8 @@ int rightMotorOneValue = 1;
 int rightMotorTwoValue = 0;
 
 int motorSpeed = 255;
+
+int delayValue = 500;
 
 int wheelSpinTime = 1000;
 
@@ -168,7 +170,7 @@ void turnPage (bool direction, bool wheelsDown){
   leftServo.write(leftServoHome);
   centerServo.writeMicroseconds(1500);
   Serial.println("homed");
-  delay(5000);
+  delay(delayValue);
 
   //stalling threshold
   Serial.println(analogRead(sensePin));
@@ -189,7 +191,7 @@ void turnPage (bool direction, bool wheelsDown){
   }
 
   Serial.println("move complete");
-  delay(5000);
+  delay(delayValue);
 
   //at this point, back off the servos by the 
   //back off degrees value
@@ -201,7 +203,7 @@ void turnPage (bool direction, bool wheelsDown){
   }
 
   Serial.println("backed off");
-  delay(5000);
+  delay(delayValue);
 
   //now it is time to spin the wheel, everything
   //here is set by variable so it should be really easy
@@ -233,7 +235,7 @@ void turnPage (bool direction, bool wheelsDown){
   centerServo.writeMicroseconds(1500);
 
   Serial.println("spun");
-  delay(5000);
+  delay(delayValue);
 
   //now check if the wheels should grip the page as per
   //the initial call for this function, if the wheels down
