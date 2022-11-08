@@ -1,4 +1,4 @@
-//ESC 100 Final Code - November 6th, 2022 
+//ESC 100 Final Code - November 8th, 2022 
 //Baksa, Maeve; Najjuuko, Veronah; Fitzgerald, Jack;
 //Lang, Mason; Can, Jin.
 
@@ -40,13 +40,13 @@ const int leftServoSense = A0;
 //set this value in the threshold value.
 bool calibrate = false;
 int rightThreshold = 200;
-int leftThreshold = 230;
+int leftThreshold = 200;
 
 //TIMING / MOTORS:
 //the positions for the individual stop points for the center motor
 
 int leftHome = 0;
-int leftUnder = 60;
+int leftUnder = 80;
 int rightUnder = 120;
 int rightHome = 180;
 
@@ -60,7 +60,7 @@ int delayBetweenDegrees = 1;
 //the secoond back off to move it even further off to 
 //not damage the pages
 int backoffDegrees = 1;
-int backoffDegrees2 = 30;
+int backoffDegrees2 = 60;
 
 //set these for the home positions
 //of the individual servo motors
@@ -83,7 +83,7 @@ bool rightMotorTwoValue = 0;
 int motorSpeed = 255;
 
 //how long to spin the motor with the wheel
-int wheelSpinTime = 1000;
+int wheelSpinTime = 500;
 
 //how long to wait between individual steps of the code
 int delayValue = 500;
@@ -130,6 +130,9 @@ void turnPage (bool direction, bool wheelsDown){
   int motorPin1;
   int motorPin2;
   int motorPWM;
+  int motor2Pin1;
+  int motor2Pin2;
+  int motor2PWM; 
   int homePosition;
   int underPosition;
   int overPosition;
@@ -138,6 +141,8 @@ void turnPage (bool direction, bool wheelsDown){
   int otherSensePin;
   int pin1Value;
   int pin2Value;
+  int m2pin1Value;
+  int m2pin2Value;
   int threshold;
   int otherThreshold;
 
@@ -160,6 +165,11 @@ void turnPage (bool direction, bool wheelsDown){
     pin2Value = leftMotorTwoValue;
     threshold = leftThreshold;
     otherThreshold = rightThreshold;
+    motor2Pin1 = rightMotorPin1;
+    motor2Pin2 = rightMotorPin2;
+    motor2PWM = rightMotorPWM;
+    m2pin1Value = rightMotorOneValue;
+    m2pin2Value = rightMotorTwoValue;
   }
 
   else if (direction == 1){
@@ -176,6 +186,11 @@ void turnPage (bool direction, bool wheelsDown){
     pin2Value = rightMotorTwoValue;
     threshold = rightThreshold;
     otherThreshold = leftThreshold;
+    motor2Pin1 = leftMotorPin1;
+    motor2Pin2 = leftMotorPin2;
+    motor2PWM = leftMotorPWM;
+    m2pin1Value = leftMotorOneValue;
+    m2pin2Value = leftMotorTwoValue;
   } 
 
   //move all wheels to start position
@@ -188,8 +203,8 @@ void turnPage (bool direction, bool wheelsDown){
   //stalling threshold detection
   Serial.println(analogRead(sensePin));
 
-  //keep increasing the motor angle until a threshold is hit (min 30 degrees)
-  while((analogRead(sensePin) < threshold && position < maxAngle) || position <= 30){
+  //keep increasing the motor angle until a threshold is hit (min backoff degrees)
+  while((analogRead(sensePin) < threshold && position < maxAngle) || position <= backoffDegrees+backoffDegrees2){
     position ++;
     if (direction == 0){
       leftServo.write(180-position);
@@ -263,6 +278,7 @@ void turnPage (bool direction, bool wheelsDown){
   centerServo.write(overPosition);
   Serial.println("gone over");
 
+  delay(delayValue);
   //now check if the wheels should grip the page as per
   //the initial call for this function, if the wheels down
   //variable is one, then this code should lower the wheels onto
@@ -272,7 +288,7 @@ void turnPage (bool direction, bool wheelsDown){
   if (wheelsDown == 1){  
     position = 0;
     // lower the other motor onto the page
-    while((analogRead(otherSensePin) < otherThreshold && position < maxAngle) || position < 30){
+    while((analogRead(otherSensePin) < otherThreshold && position < maxAngle) || position < backoffDegrees+backoffDegrees2){
       position ++;
       if (direction == 0){
         rightServo.write(position);
@@ -310,6 +326,13 @@ void turnPage (bool direction, bool wheelsDown){
 
   //move arm back to the final resting spot
   centerServo.write(otherHome);
+
+  //spin the wheel in the opposite direction to pull it tight.
+  digitalWrite(motor2Pin1,m2pin2Value);
+  digitalWrite(motor2Pin2,m2pin1Value);
+  analogWrite(motor2PWM,motorSpeed);
+  delay(wheelSpinTime);
+  analogWrite(motor2PWM,0);
 
   Serial.println("complete");
 
