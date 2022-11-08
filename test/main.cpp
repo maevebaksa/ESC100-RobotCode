@@ -1,7 +1,3 @@
-//ESC 100 Final Code - November 6th, 2022 
-//Baksa, Maeve; Najjuuko, Veronah; Fitzgerald, Jack;
-//Lang, Mason; Can, Jin.
-
 #include <Arduino.h>
 #include <Servo.h>
 
@@ -42,13 +38,23 @@ bool calibrate = false;
 int rightThreshold = 200;
 int leftThreshold = 230;
 
-//TIMING / MOTORS:
-//the positions for the individual stop points for the center motor
+// continuous rotation servos must 
+//be adjusted in a way so that at centerUsus 
+// width they will not spin, by
+//enabling this setting it will allow
+//for you to adjust the potentiometer to
+//stop the motor from drifting.
+bool servoStopCalibrate = false;
 
-int leftHome = 0;
-int leftUnder = 60;
-int rightUnder = 120;
-int rightHome = 180;
+//TIMING / MOTORS:
+//adjust for how long the center servo is to spin in order to make a full rotation
+//additionally, adjust the speed of the servos
+
+int spinningTime = 400;
+int spinningTime2 = 200;
+int spinningTime3 = 300;
+int uSforClockwise = 900;
+int uSforCounterClockwise = 2000;
 
 //how long to wait for the current to stabilize 
 //and to wait before moving the servo further
@@ -56,9 +62,7 @@ int delayBetweenDegrees = 1;
 
 //how far the motor should turn backwards
 //in degrees in order to not apply too much 
-//pressure on the pages, and then during
-//the secoond back off to move it even further off to 
-//not damage the pages
+//pressure on the pages
 int backoffDegrees = 1;
 int backoffDegrees2 = 30;
 
@@ -72,21 +76,20 @@ int leftServoHome = 180;
 int maxAngle = 120;
 
 //use these to set the direction of the wheel motor
-//if it is going in the wrong order flip which is 1 and 0
-//for the specific motor
-bool leftMotorOneValue = 1;
-bool leftMotorTwoValue = 0;
-bool rightMotorOneValue = 1;
-bool rightMotorTwoValue = 0;
+int leftMotorOneValue = 1;
+int leftMotorTwoValue = 0;
+int rightMotorOneValue = 1;
+int rightMotorTwoValue = 0;
 
-//how fast (0-255) to spin the motor
 int motorSpeed = 255;
 
-//how long to spin the motor with the wheel
+int delayValue = 500;
+
 int wheelSpinTime = 1000;
 
-//how long to wait between individual steps of the code
-int delayValue = 500;
+int centerUs;
+
+int potPin = A2;
 
 //DO NOT ADJUST FROM THIS POINT, PRE-SETUP CODE:
 
@@ -121,7 +124,7 @@ void setup() {
   //move the servos back to top
   rightServo.write(rightServoHome);
   leftServo.write(leftServoHome);
-  centerServo.write(leftHome);
+  centerServo.writeMicroseconds(centerUs);
 }
 
 //the main function 
@@ -130,10 +133,7 @@ void turnPage (bool direction, bool wheelsDown){
   int motorPin1;
   int motorPin2;
   int motorPWM;
-  int homePosition;
-  int underPosition;
-  int overPosition;
-  int otherHome;
+  int uSforCenter;
   int sensePin;
   int otherSensePin;
   int pin1Value;
@@ -150,10 +150,7 @@ void turnPage (bool direction, bool wheelsDown){
     motorPin1 = leftMotorPin1;
     motorPin2 = leftMotorPin2;
     motorPWM = leftMotorPWM;
-    homePosition = leftHome;
-    underPosition = leftUnder;
-    overPosition = rightUnder;
-    otherHome = rightHome;
+    uSforCenter = uSforCounterClockwise;
     sensePin = leftServoSense;
     otherSensePin = rightServoSense;
     pin1Value = leftMotorOneValue;
@@ -166,10 +163,7 @@ void turnPage (bool direction, bool wheelsDown){
     motorPin1 = rightMotorPin1;
     motorPin2 = rightMotorPin2;
     motorPWM = rightMotorPWM;
-    homePosition = rightHome;
-    underPosition = rightUnder;
-    overPosition = leftUnder;
-    otherHome = leftHome;
+    uSforCenter = uSforClockwise;
     sensePin = rightServoSense;
     otherSensePin = leftServoSense;
     pin1Value = rightMotorOneValue;
@@ -181,14 +175,12 @@ void turnPage (bool direction, bool wheelsDown){
   //move all wheels to start position
   rightServo.write(rightServoHome);
   leftServo.write(leftServoHome);
-  centerServo.write(homePosition);
+  centerServo.writeMicroseconds(centerUs);
   Serial.println("homed");
   delay(delayValue);
 
-  //stalling threshold detection
+  //stalling threshold
   Serial.println(analogRead(sensePin));
-
-  //keep increasing the motor angle until a threshold is hit (min 30 degrees)
   while((analogRead(sensePin) < threshold && position < maxAngle) || position <= 30){
     position ++;
     if (direction == 0){
@@ -197,7 +189,6 @@ void turnPage (bool direction, bool wheelsDown){
     if (direction == 1){
       rightServo.write(position);
     }
-    //printing for diagnostics
     delay(delayBetweenDegrees);
     Serial.print("degrees: ");
     Serial.println(position);
@@ -224,6 +215,13 @@ void turnPage (bool direction, bool wheelsDown){
   //now it is time to spin the wheel, everything
   //here is set by variable so it should be really easy
   //famous last words ^^
+
+  Serial.println(motorPin1);
+  Serial.println(pin1Value);
+  Serial.println(motorPin2);
+  Serial.println(pin2Value);
+  Serial.println(motorPWM);
+  Serial.println(motorSpeed);
   digitalWrite(motorPin1,pin1Value);
   digitalWrite(motorPin2,pin2Value);
   analogWrite(motorPWM,motorSpeed);
@@ -231,20 +229,20 @@ void turnPage (bool direction, bool wheelsDown){
   Serial.println("wheelon");
 
   delay(wheelSpinTime);
+
   analogWrite(motorPWM,0);
 
   Serial.println("wheeloff");
   
 
   //now it is time to finally flip the page using the center arm
-  //move to a position underneath the page
   
-  centerServo.write(underPosition);
+  centerServo.writeMicroseconds(uSforCenter);
+  delay(spinningTime);
+  centerServo.writeMicroseconds(centerUs);
 
-  Serial.println("gone under");
+  Serial.println("spun");
   delay(delayValue);
-
-  //back off the motors again to give for more ability to flip the page
 
   if (direction == 0){
     leftServo.write(180-(position-backoffDegrees2));
@@ -256,17 +254,17 @@ void turnPage (bool direction, bool wheelsDown){
   Serial.println("backoff2222222");
 
   delay(delayValue);
-  
 
-  //flip the page
+  centerServo.writeMicroseconds(uSforCenter);
+  delay(spinningTime2);
+  centerServo.writeMicroseconds(centerUs);
 
-  centerServo.write(overPosition);
-  Serial.println("gone over");
+  Serial.println("spun2");
 
   //now check if the wheels should grip the page as per
   //the initial call for this function, if the wheels down
   //variable is one, then this code should lower the wheels onto
-  //the page. this matches the code from above for thresholding
+  //the page.
 
   /*
   if (wheelsDown == 1){  
@@ -286,7 +284,7 @@ void turnPage (bool direction, bool wheelsDown){
   }
   */
 
-  //dumb wheels down, clamping down onto the page
+  //dumb wheels down  
   if (wheelsDown == 1){
     if (direction == 0){
       rightServo.write(100);
@@ -306,12 +304,13 @@ void turnPage (bool direction, bool wheelsDown){
     Serial.println("homed2");
   }
 
+  Serial.println("complete");
+
   delay(delayValue);
 
-  //move arm back to the final resting spot
-  centerServo.write(otherHome);
-
-  Serial.println("complete");
+  centerServo.writeMicroseconds(uSforCenter);
+  delay(spinningTime3);
+  centerServo.writeMicroseconds(centerUs);
 
 }
 
@@ -336,6 +335,25 @@ void loop() {
       delay(100);
     }
   }
+  else if (servoStopCalibrate){
+
+    //move the right and left servo to
+    //the proper home position to 
+    //ensure it is in the right place
+
+    Serial.println("iscalibrating");
+
+    rightServo.write(rightServoHome);
+    leftServo.write(leftServoHome);
+
+    //make the center servo stop and wait in the
+    //center so you can adjust the pot
+    centerServo.writeMicroseconds(centerUs);
+
+    //wait 100 seconds for the user to
+    //complete calibration
+    delay(100000);
+  } 
 
   else{
     //main void loop code:
@@ -345,6 +363,11 @@ void loop() {
     //bool direction turns page backwards if val of 0
     //bool direction turns page forward if val of 1
     //bool wheelsDown leaves the wheels in a downward position if there's a value of 1
+
+    centerUs =  (analogRead(potPin)/4-128+1500);
+    Serial.println(centerUs);
+
+    centerServo.writeMicroseconds(centerUs);
 
     if (digitalRead(leftButton) == LOW){
       Serial.println("left");
